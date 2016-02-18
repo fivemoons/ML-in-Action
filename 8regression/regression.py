@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 '''
 Created on Jan 8, 2011
 
@@ -5,63 +6,63 @@ Created on Jan 8, 2011
 '''
 from numpy import *
 
-def loadDataSet(fileName):      #general function to parse tab -delimited floats
-    numFeat = len(open(fileName).readline().split('\t')) - 1 #get number of fields 
-    dataMat = []; labelMat = []
+def loadDataSet(fileName):      #载入数据
+    numFeat = len(open(fileName).readline().split('\t')) - 1 #获得样本数
+    dataMat = []; labelMat = [] #获得两个矩阵
     fr = open(fileName)
     for line in fr.readlines():
         lineArr =[]
-        curLine = line.strip().split('\t')
+        curLine = line.strip().split('\t') #使用tab分隔
         for i in range(numFeat):
             lineArr.append(float(curLine[i]))
         dataMat.append(lineArr)
-        labelMat.append(float(curLine[-1]))
+        labelMat.append(float(curLine[-1])) #最后一列是回归值
     return dataMat,labelMat
 
-def standRegres(xArr,yArr):
-    xMat = mat(xArr); yMat = mat(yArr).T
-    xTx = xMat.T*xMat
+def standRegres(xArr,yArr): #最小二乘法：(xTx)^-1xTy
+    xMat = mat(xArr); yMat = mat(yArr).T #x矩阵 y矩阵
+    xTx = xMat.T*xMat 
     if linalg.det(xTx) == 0.0:
         print "This matrix is singular, cannot do inverse"
         return
     ws = xTx.I * (xMat.T*yMat)
     return ws
 
-def lwlr(testPoint,xArr,yArr,k=1.0):
+def lwlr(testPoint,xArr,yArr,k=1.0): #局部加权线性回归：(xTWx)^-1xTWy
     xMat = mat(xArr); yMat = mat(yArr).T
-    m = shape(xMat)[0]
-    weights = mat(eye((m)))
-    for j in range(m):                      #next 2 lines create weights matrix
-        diffMat = testPoint - xMat[j,:]     #
-        weights[j,j] = exp(diffMat*diffMat.T/(-2.0*k**2))
-    xTx = xMat.T * (weights * xMat)
+    m = shape(xMat)[0] #返回样本个数
+    weights = mat(eye((m))) #生成对角矩阵
+    for j in range(m):                      #依次遍历每一个样本
+        diffMat = testPoint - xMat[j,:]     #计算当前样本和其他样本的误差
+        weights[j,j] = exp(diffMat*diffMat.T/(-2.0*k**2)) #计算该点的权重
+    xTx = xMat.T * (weights * xMat) #(xTWx)^-1xTWy
     if linalg.det(xTx) == 0.0:
         print "This matrix is singular, cannot do inverse"
         return
     ws = xTx.I * (xMat.T * (weights * yMat))
     return testPoint * ws
 
-def lwlrTest(testArr,xArr,yArr,k=1.0):  #loops over all the data points and applies lwlr to each one
-    m = shape(testArr)[0]
-    yHat = zeros(m)
-    for i in range(m):
-        yHat[i] = lwlr(testArr[i],xArr,yArr,k)
+def lwlrTest(testArr,xArr,yArr,k=1.0):  #循环每一个数据点
+    m = shape(testArr)[0] #样本数
+    yHat = zeros(m) #预测结果
+    for i in range(m): #依次预测每一个数据
+        yHat[i] = lwlr(testArr[i],xArr,yArr,k) #当前样本，所有样本，所有标签，k权重大小
     return yHat
 
-def lwlrTestPlot(xArr,yArr,k=1.0):  #same thing as lwlrTest except it sorts X first
-    yHat = zeros(shape(yArr))       #easier for plotting
+def lwlrTestPlot(xArr,yArr,k=1.0):  #先排序的数组
+    yHat = zeros(shape(yArr))
     xCopy = mat(xArr)
     xCopy.sort(0)
     for i in range(shape(xArr)[0]):
         yHat[i] = lwlr(xCopy[i],xArr,yArr,k)
     return yHat,xCopy
 
-def rssError(yArr,yHatArr): #yArr and yHatArr both need to be arrays
+def rssError(yArr,yHatArr): #两个数组计算平方误差
     return ((yArr-yHatArr)**2).sum()
 
-def ridgeRegres(xMat,yMat,lam=0.2):
+def ridgeRegres(xMat,yMat,lam=0.2): #岭回归，当样本数比特征数小，矩阵不是满秩矩阵：(xTx + λI)^-1*xTy
     xTx = xMat.T*xMat
-    denom = xTx + eye(shape(xMat)[1])*lam
+    denom = xTx + eye(shape(xMat)[1])*lam #在xTx基础上加上 λI I是单位矩阵 numpy中的方法
     if linalg.det(denom) == 0.0:
         print "This matrix is singular, cannot do inverse"
         return
@@ -70,47 +71,47 @@ def ridgeRegres(xMat,yMat,lam=0.2):
     
 def ridgeTest(xArr,yArr):
     xMat = mat(xArr); yMat=mat(yArr).T
-    yMean = mean(yMat,0)
-    yMat = yMat - yMean     #to eliminate X0 take mean off of Y
+    yMean = mean(yMat,0)    #计算y的均值
+    yMat = yMat - yMean     #所有特征均减去各自的均值
     #regularize X's
-    xMeans = mean(xMat,0)   #calc mean then subtract it off
-    xVar = var(xMat,0)      #calc variance of Xi then divide by it
-    xMat = (xMat - xMeans)/xVar
+    xMeans = mean(xMat,0)   #计算x的均值
+    xVar = var(xMat,0)      #计算x的方差
+    xMat = (xMat - xMeans)/xVar #减去均值除以方差
     numTestPts = 30
-    wMat = zeros((numTestPts,shape(xMat)[1]))
+    wMat = zeros((numTestPts,shape(xMat)[1])) #使用30个λ测试
     for i in range(numTestPts):
-        ws = ridgeRegres(xMat,yMat,exp(i-10))
+        ws = ridgeRegres(xMat,yMat,exp(i-10)) # #从e-10到e20
         wMat[i,:]=ws.T
     return wMat
 
 def regularize(xMat):#regularize by columns
     inMat = xMat.copy()
-    inMeans = mean(inMat,0)   #calc mean then subtract it off
-    inVar = var(inMat,0)      #calc variance of Xi then divide by it
+    inMeans = mean(inMat,0)   #计算均值
+    inVar = var(inMat,0)      #计算方差
     inMat = (inMat - inMeans)/inVar
     return inMat
 
-def stageWise(xArr,yArr,eps=0.01,numIt=100):
-    xMat = mat(xArr); yMat=mat(yArr).T
-    yMean = mean(yMat,0)
-    yMat = yMat - yMean     #can also regularize ys but will get smaller coef
-    xMat = regularize(xMat)
+def stageWise(xArr,yArr,eps=0.01,numIt=100): #前向逐步线性回归  与lasso相近 eps每次迭代需要调整的步长 迭代次数
+    xMat = mat(xArr); yMat=mat(yArr).T #数据数据 预测变量
+    yMean = mean(yMat,0) #均值
+    yMat = yMat - yMean     #标准化也可
+    xMat = regularize(xMat) #标准化x
     m,n=shape(xMat)
     #returnMat = zeros((numIt,n)) #testing code remove
-    ws = zeros((n,1)); wsTest = ws.copy(); wsMax = ws.copy()
+    ws = zeros((n,1)); wsTest = ws.copy(); wsMax = ws.copy() #建立两个副本为了贪心
     for i in range(numIt):
         print ws.T
         lowestError = inf; 
         for j in range(n):
-            for sign in [-1,1]:
-                wsTest = ws.copy()
-                wsTest[j] += eps*sign
-                yTest = xMat*wsTest
-                rssE = rssError(yMat.A,yTest.A)
-                if rssE < lowestError:
-                    lowestError = rssE
-                    wsMax = wsTest
-        ws = wsMax.copy()
+            for sign in [-1,1]: #减少还是增加 值
+                wsTest = ws.copy() #拷贝一份
+                wsTest[j] += eps*sign  #这一位更改值
+                yTest = xMat*wsTest #计算新的预测值
+                rssE = rssError(yMat.A,yTest.A) #计算误差
+                if rssE < lowestError: #如果误差更小
+                    lowestError = rssE #替换
+                    wsMax = wsTest #当前最好的ws值
+        ws = wsMax.copy() #ws从wsMax开始做
         #returnMat[i,:]=ws.T
     #return returnMat
 
