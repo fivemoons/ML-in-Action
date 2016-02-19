@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Feb 16, 2011
 k Means Clustering for Ch10 of Machine Learning in Action
