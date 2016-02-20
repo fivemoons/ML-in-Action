@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Created on Jun 1, 2011
 
@@ -6,21 +7,21 @@ Created on Jun 1, 2011
 from numpy import *
 
 def loadDataSet(fileName, delim='\t'):
-    fr = open(fileName)
-    stringArr = [line.strip().split(delim) for line in fr.readlines()]
-    datArr = [map(float,line) for line in stringArr]
-    return mat(datArr)
+    fr = open(fileName) #打开文件
+    stringArr = [line.strip().split(delim) for line in fr.readlines()] #读入切割生成列表[[]]
+    datArr = [map(float,line) for line in stringArr] #每一个行的每一个元素转换成float
+    return mat(datArr) #转换成矩阵
 
-def pca(dataMat, topNfeat=9999999):
-    meanVals = mean(dataMat, axis=0)
-    meanRemoved = dataMat - meanVals #remove mean
-    covMat = cov(meanRemoved, rowvar=0)
-    eigVals,eigVects = linalg.eig(mat(covMat))
-    eigValInd = argsort(eigVals)            #sort, sort goes smallest to largest
-    eigValInd = eigValInd[:-(topNfeat+1):-1]  #cut off unwanted dimensions
-    redEigVects = eigVects[:,eigValInd]       #reorganize eig vects largest to smallest
-    lowDDataMat = meanRemoved * redEigVects#transform data into new dimensions
-    reconMat = (lowDDataMat * redEigVects.T) + meanVals
+def pca(dataMat, topNfeat=9999999): #dataMat数据集[[..]..]
+    meanVals = mean(dataMat, axis=0) #首先计算平均数，按照列计算平均数 [[..]]
+    meanRemoved = dataMat - meanVals #减去平均值
+    covMat = cov(meanRemoved, rowvar=0) #计算协方差
+    eigVals,eigVects = linalg.eig(mat(covMat)) #计算协方差矩阵的特征值 eigVals：特征值 eigVects：特征向量
+    eigValInd = argsort(eigVals)            #对特征值进行排序
+    eigValInd = eigValInd[:-(topNfeat+1):-1]  #只保留最大的几个特征向量
+    redEigVects = eigVects[:,eigValInd]       
+    lowDDataMat = meanRemoved * redEigVects
+    reconMat = (lowDDataMat * redEigVects.T) + meanVals #把数据转换回低维数据
     return lowDDataMat, reconMat
 
 def replaceNanWithMean(): 
